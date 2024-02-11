@@ -184,7 +184,6 @@ public class World extends JPanel implements Runnable {
             if (rev_v.copy().dot(n) > 0) {
                 return;
             }
-            System.out.println(i);
             double e = 0.5;
             double j = -(1 + e) * rev_v.copy().dot(n);
             j /= de;
