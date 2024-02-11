@@ -155,9 +155,7 @@ public class World extends JPanel implements Runnable {
             double delta = (a.radius + b.radius) - d;
             a.pos.add(n.copy().mult(delta * 0.5));
             b.pos.add(n.copy().mult(-delta * 0.5));
-            Vec2 contact1 = b.pos.copy().sub(a.pos).normalize().mult(a.radius).add(b.pos);
-            Vec2 contact2 = a.pos.copy().sub(b.pos).normalize().mult(b.radius).add(a.pos);
-            Vec2[] contactList = new Vec2[] { contact1, contact2 };
+            Vec2 contact = b.pos.copy().sub(a.pos).normalize().mult(a.radius).add(b.pos);
             // Vec2 ra = contact1.copy().sub(a.pos);
             // Vec2 rb = contact2.copy().sub(b.pos);
             // Vec2 raP = new Vec2(-ra.y, ra.x);
@@ -177,33 +175,31 @@ public class World extends JPanel implements Runnable {
                     to.pos = a.pos.copy().add(b.pos.copy()).div(2);
                 }
             }
-            for (int i = 0; i < contactList.length; i++) {
-                Vec2 ra = contactList[i].copy().sub(a.pos);
-                Vec2 rb = contactList[i].copy().sub(b.pos);
-                Vec2 raP = new Vec2(-ra.y, ra.x);
-                Vec2 rbP = new Vec2(-rb.y, rb.x);
-                double raPN = raP.copy().dot(n.copy());
-                double rbPN = rbP.copy().dot(n.copy());
+            Vec2 ra = contact.copy().sub(a.pos);
+            Vec2 rb = contact.copy().sub(b.pos);
+            Vec2 raP = new Vec2(-ra.y, ra.x);
+            Vec2 rbP = new Vec2(-rb.y, rb.x);
+            double raPN = raP.copy().dot(n.copy());
+            double rbPN = rbP.copy().dot(n.copy());
 
-                double de = (1 / a.mass) + (1 / b.mass) +
-                        (raPN * raPN) * (1 / a.rotationalInertial) +
-                        (rbPN * rbPN) * (1 / b.rotationalInertial);
-                Vec2 ava = raP.copy().mult(a.rotationalVelocity);
-                Vec2 avb = rbP.copy().mult(b.rotationalVelocity);
-                Vec2 rev_v = a.vel.copy().add(ava).sub(b.vel.copy()).sub(avb);
-                if (rev_v.copy().dot(n) > 0) {
-                    return;
-                }
-                System.out.println(i);
-                double e = 0.5;
-                double j = -(1 + e) * rev_v.copy().dot(n);
-                j /= de;
-                Vec2 impulse = n.copy().mult(j);
-                a.applyForce(impulse.copy());
-                a.applyRotationalForce(ra.copy(), impulse);
-                b.applyForce(impulse.copy().mult(-1));
-                b.applyRotationalForce(rb.copy().mult(-1), impulse);
+            double de = (1 / a.mass) + (1 / b.mass) +
+                    (raPN * raPN) * (1 / a.rotationalInertial) +
+                    (rbPN * rbPN) * (1 / b.rotationalInertial);
+            Vec2 ava = raP.copy().mult(a.rotationalVelocity);
+            Vec2 avb = rbP.copy().mult(b.rotationalVelocity);
+            Vec2 rev_v = a.vel.copy().add(ava).sub(b.vel.copy()).sub(avb);
+            if (rev_v.copy().dot(n) > 0) {
+                return;
             }
+            System.out.println(i);
+            double e = 0.5;
+            double j = -(1 + e) * rev_v.copy().dot(n);
+            j /= de;
+            Vec2 impulse = n.copy().mult(j);
+            a.applyForce(impulse.copy());
+            a.applyRotationalForce(ra.copy(), impulse);
+            b.applyForce(impulse.copy().mult(-1));
+            b.applyRotationalForce(rb.copy().mult(-1), impulse);
             // double e = 0.5;
             // double j = (-1 + e) * rev_v.copy().dot(n);
             // double de = (1 / a.mass) + (1 / b.mass) +
