@@ -156,13 +156,6 @@ public class World extends JPanel implements Runnable {
             a.pos.add(n.copy().mult(delta * 0.5));
             b.pos.add(n.copy().mult(-delta * 0.5));
             Vec2 contact = b.pos.copy().sub(a.pos).normalize().mult(a.radius).add(b.pos);
-            // Vec2 ra = contact1.copy().sub(a.pos);
-            // Vec2 rb = contact2.copy().sub(b.pos);
-            // Vec2 raP = new Vec2(-ra.y, ra.x);
-            // Vec2 rbP = new Vec2(-rb.y, rb.x);
-            // double raPN = raP.copy().dot(n);
-            // double rbPN = rbP.copy().dot(n);
-
             // Vec2 rev_v = a.vel.copy().sub(b.vel.copy());
             // if (rev_v.copy().dot(n) > 0) {
             // return;
