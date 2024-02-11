@@ -4,7 +4,9 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -14,17 +16,22 @@ import engine.event.EventList;
 import engine.event.EventListener;
 import engine.event.MouseClicked;
 import engine.event.MouseMoveEvent;
-import engine.objects.BallBase;
-import engine.objects.BallType;
+import engine.objects.ball.BallBase;
+import engine.objects.ball.BallType;
 import engine.objects.base.Body;
 import engine.objects.base.Circle;
 import engine.objects.base.IObject;
-import engine.objects.base.BodyType;
+import engine.objects.base.ShapeType;
 import engine.vector.Vec2;
 
 public class World extends JPanel implements Runnable {
 
+    public static interface Renderer {
+        public void render(Graphics2D g);
+    }
+
     private ArrayList<IObject> objects = new ArrayList<>();
+    private ArrayList<Renderer> renderers = new ArrayList<>();
 
     private final int width;
     private final int height;
@@ -33,32 +40,35 @@ public class World extends JPanel implements Runnable {
 
     private Thread worldThread;
     private boolean loop = false;
+    private final String name;
 
-    public World() {
-        this(400, 400);
+    public World(String name) {
+        this(name, 400, 400);
     }
 
-    public void addRenderer() {
-
+    public void addRenderer(Renderer renderer) {
+        this.renderers.add(renderer);
     }
 
-    public World(int width, int height) {
+    public World(String name, int width, int height) {
         this.width = width;
         this.height = height;
         setSize(width, height);
         setLocation(0, 0);
         setLayout(null);
-        setBackground(Color.BLACK);
+        setBackground(null);
+        setOpaque(false);
+        this.name = name;
 
         this.addMouseListener(new MouseListener() {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                events.dispatchEvent(new MouseClicked(e.getX(), e.getY()));
             }
 
             @Override
             public void mousePressed(MouseEvent e) {
+                events.dispatchEvent(new MouseClicked(e.getX(), e.getY()));
             }
 
             @Override
@@ -138,7 +148,7 @@ public class World extends JPanel implements Runnable {
             for (int l = i + 1; l < this.objects.size(); l++) {
                 Body m = (Body) this.objects.get(i);
                 Body g = (Body) this.objects.get(l);
-                if (m.getRigibody() == BodyType.CIRCLE && g.getRigibody() == BodyType.CIRCLE) {
+                if (m.getShapeType() == ShapeType.CIRCLE && g.getShapeType() == ShapeType.CIRCLE) {
                     resolveCircleCollision(m, g);
                 }
             }
@@ -238,13 +248,35 @@ public class World extends JPanel implements Runnable {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         // RenderingHints rh = new RenderingHints(
         // RenderingHints.KEY_TEXT_ANTIALIASING,
         // RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         // g2d.setRenderingHints(rh);
+        for (Renderer renderer : this.renderers) {
+            renderer.render(g2d);
+        }
         this.render(g2d);
     }
 
+    // @Override
+    // public void run() {
+    // double nano = TimeUnit.SECONDS.toNanos(1);
+    // double dt = nano / 200;
+    // long currentTime = System.nanoTime();
+    // while (loop) {
+    // long newTime = System.nanoTime();
+    // long frameTime = newTime - currentTime;
+    // currentTime = newTime;
+    // this.events.flush();
+    // while (frameTime > 0.0) {
+    // double delta = Math.min(frameTime, dt);
+    // update(dt / nano);
+    // frameTime -= delta;
+    // }
+    // repaint();
+    // }
+    // }
     @Override
     public void run() {
         int FPS = 60;
@@ -253,22 +285,27 @@ public class World extends JPanel implements Runnable {
         double dt = 0;
         long lastTime = System.nanoTime();
         long currentTime = System.nanoTime();
-        while (loop) {
-            currentTime = System.nanoTime();
-            dt += ((currentTime - lastTime) / nano) * FPS;
-            if (dt > 1) {
-                dt--;
-                this.events.flush();
-                update(0.3);
-                repaint();
-            } else {
-                try {
-                    TimeUnit.NANOSECONDS.sleep((long) (revo - (currentTime - lastTime)));
-                } catch (Exception e) {
-                    loop = false;
+        try {
+            while (loop) {
+                currentTime = System.nanoTime();
+                dt += ((currentTime - lastTime) / nano) * FPS;
+                if (dt > 1) {
+                    dt--;
+                    this.events.flush();
+                    update(0.3);
+                    repaint();
+                } else {
+                    try {
+                        TimeUnit.NANOSECONDS.sleep((long) (revo - (currentTime - lastTime)));
+                    } catch (Exception e) {
+                        loop = false;
+                    }
                 }
+                lastTime = currentTime;
             }
-            lastTime = currentTime;
+        } catch (Exception e) {
+            System.out.println(this.name);
+            e.printStackTrace();
         }
     }
 }

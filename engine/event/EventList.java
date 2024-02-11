@@ -31,8 +31,7 @@ public class EventList {
 
     public void flush() {
         while (this.events.size() > 0) {
-            Event<?> e = this.events.poll();
-            this._dispatchEvent(e);
+            this._dispatchEvent(this.events.poll());
         }
     }
 }

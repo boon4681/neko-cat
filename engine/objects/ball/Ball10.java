@@ -1,4 +1,4 @@
-package engine.objects;
+package engine.objects.ball;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
@@ -9,16 +9,16 @@ import javax.imageio.ImageIO;
 import engine.World;
 import engine.objects.base.Body;
 
-public class Ball2 extends BallBase {
-    private static BufferedImage image = Body.loadImage(new File("assets/c2.png"));
+public class Ball10 extends BallBase {
+    private static BufferedImage image = Body.loadImage(new File("assets/c10.png"));
 
-    public Ball2(World world) {
-        super(world, 60, 30);
+    public Ball10(World world) {
+        super(world, 70, 20);
     }
 
     @Override
     public Color getColor() {
-        return Color.YELLOW;
+        return Color.GREEN;
     }
 
     @Override

@@ -17,8 +17,14 @@ public abstract class Body implements IObject {
     public Vec2 vel;
     public Vec2 acc;
     public double mass;
+    public double rotationalVelocity;
+    public double rotationalInertial;
+    public double rotationalAcc;
+    public double rotation;
 
-    public abstract BodyType getRigibody();
+    public abstract ShapeType getShapeType();
+
+    public abstract BodyType getBodyType();
 
     public Body(World world) {
         this(world, new Vec2(), new Vec2(), new Vec2(), 1);
@@ -56,6 +62,10 @@ public abstract class Body implements IObject {
 
     public final void applyForce(Vec2 force) {
         this.acc.add(force.copy().div(this.mass));
+    }
+
+    public final void applyRotationalForce(Vec2 pos, Vec2 force) {
+        this.rotationalAcc += pos.copy().cross(force) / this.mass;
     }
 
     public static final BufferedImage loadImage(File file) {

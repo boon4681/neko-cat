@@ -6,17 +6,13 @@ import java.awt.Graphics2D;
 import engine.World;
 import engine.vector.Vec2;
 
-public class Circle extends Body {
+public class Circle extends DynamicBody {
 
-    protected final Vec2 GRAVITY = new Vec2(0, 0.3);
+    protected final Vec2 GRAVITY = new Vec2(0, 0.1);
     public int radius = 10;
-    public final BodyType shape = BodyType.CIRCLE;
-    public double rotationalVelocity;
-    public double rotationalInertial;
-    public double rotationalAcc;
-    public double rotation;
+    public final ShapeType shape = ShapeType.CIRCLE;
 
-    public BodyType getRigibody() {
+    public ShapeType getShapeType() {
         return this.shape;
     }
 
@@ -40,10 +36,6 @@ public class Circle extends Body {
         this.rotationalInertial = Math.pow(radius, 4) * 0.25 * Math.PI;
     }
 
-    public final void applyRotationalForce(Vec2 pos, Vec2 force) {
-        this.rotationalAcc += pos.copy().cross(force) / this.mass;
-    }
-
     @Override
     public void render(Graphics2D g) {
         g.setColor(Color.RED);
@@ -65,27 +57,34 @@ public class Circle extends Body {
 
     @Override
     public void updatePosition(double dt) {
+        this.edges(dt);
         this.vel = this.vel.add(this.acc.copy().mult(dt));
         if (this.vel.mag() > 3) {
             this.vel.normalize();
         }
         this.pos = this.pos.copy().add(this.vel.copy().mult(dt)).add(this.acc.copy().mult(dt * dt * 0.5));
-        this.edges();
         this.acc.x = 0;
         this.acc.y = 0;
     }
 
-    private void edges() {
+    private void edges(double dt) {
+        double friction = 0.006;
         if (this.pos.y + this.radius > this.getWorld().getHeight()) {
             this.vel.y *= -0.5;
+            this.vel = this.vel.copy().add(this.vel.copy().mult(friction).mult(-1));
+            this.rotationalVelocity += -this.rotationalVelocity * friction;
             this.pos.y = this.getWorld().getHeight() - this.radius;
         }
         if (this.pos.x - this.radius < 0) {
             this.vel.x *= -1;
+            this.vel = this.vel.copy().add(this.vel.copy().mult(friction).mult(-1));
+            this.rotationalVelocity += -this.rotationalVelocity * friction;
             this.pos.x = this.radius;
         }
         if (this.pos.x + this.radius > this.getWorld().getWidth()) {
             this.vel.x *= -1;
+            this.vel = this.vel.copy().add(this.vel.copy().mult(friction).mult(-1));
+            this.rotationalVelocity += -this.rotationalVelocity * friction;
             this.pos.x = this.getWorld().getWidth() - this.radius;
         }
     }

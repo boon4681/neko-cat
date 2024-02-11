@@ -1,7 +1,9 @@
-package engine.objects;
+package engine.objects.ball;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 
 import javax.imageio.ImageIO;
@@ -22,8 +24,10 @@ public abstract class BallBase extends Circle {
     public void render(Graphics2D g) {
         g = (Graphics2D) g.create();
         g.setColor(this.getColor());
-        g.rotate(Math.toRadians(this.rotation), (int) this.getX() + this.radius, (int) this.getY() + this.radius);
-        g.drawImage(this.getImage(), (int) this.getX(), (int) this.getY(), this.radius * 2, this.radius * 2,
+        g.rotate(Math.toRadians(this.rotation), (int) this.getX() + this.radius,
+                (int) this.getY() + this.radius);
+        g.drawImage(this.getImage(), (int) this.getX(), (int) this.getY(),
+                this.radius * 2, this.radius * 2,
                 getWorld());
         g.dispose();
         // g.fillOval((int) this.getX(), (int) this.getY(), this.radius * 2, this.radius

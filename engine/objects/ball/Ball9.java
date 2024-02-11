@@ -1,4 +1,4 @@
-package engine.objects;
+package engine.objects.ball;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
@@ -9,11 +9,11 @@ import javax.imageio.ImageIO;
 import engine.World;
 import engine.objects.base.Body;
 
-public class Ball3 extends BallBase {
-    private static BufferedImage image = Body.loadImage(new File("assets/c3.png"));
+public class Ball9 extends BallBase {
+    private static BufferedImage image = Body.loadImage(new File("assets/c9.png"));
 
-    public Ball3(World world) {
-        super(world, 100, 40);
+    public Ball9(World world) {
+        super(world, 70, 20);
     }
 
     @Override
