@@ -172,26 +172,53 @@ public class World extends JPanel implements Runnable {
             Vec2 rb = contact.copy().sub(b.pos);
             Vec2 raP = new Vec2(-ra.y, ra.x);
             Vec2 rbP = new Vec2(-rb.y, rb.x);
-            double raPN = raP.copy().dot(n.copy());
-            double rbPN = rbP.copy().dot(n.copy());
-
-            double de = (1 / a.mass) + (1 / b.mass) +
-                    (raPN * raPN) * (1 / a.rotationalInertial) +
-                    (rbPN * rbPN) * (1 / b.rotationalInertial);
             Vec2 ava = raP.copy().mult(a.rotationalVelocity);
             Vec2 avb = rbP.copy().mult(b.rotationalVelocity);
             Vec2 rev_v = a.vel.copy().add(ava).sub(b.vel.copy()).sub(avb);
-            if (rev_v.copy().dot(n) > 0) {
-                return;
+            double j = 0;
+            // Freaking Impulse
+            {
+                double raPN = raP.copy().dot(n.copy());
+                double rbPN = rbP.copy().dot(n.copy());
+                double de = (1 / a.mass) + (1 / b.mass) +
+                        (raPN * raPN) * (1 / a.rotationalInertial) +
+                        (rbPN * rbPN) * (1 / b.rotationalInertial);
+                if (rev_v.copy().dot(n) > 0) {
+                    return;
+                }
+                double e = 0.5;
+                j = -(1 + e) * rev_v.copy().dot(n);
+                j /= de;
+                Vec2 impulse = n.copy().mult(j);
+                a.applyForce(impulse.copy());
+                a.applyRotationalForce(ra.copy(), impulse);
+                b.applyForce(impulse.copy().mult(-1));
+                b.applyRotationalForce(rb.copy().mult(-1), impulse);
             }
-            double e = 0.5;
-            double j = -(1 + e) * rev_v.copy().dot(n);
-            j /= de;
-            Vec2 impulse = n.copy().mult(j);
-            a.applyForce(impulse.copy());
-            a.applyRotationalForce(ra.copy(), impulse);
-            b.applyForce(impulse.copy().mult(-1));
-            b.applyRotationalForce(rb.copy().mult(-1), impulse);
+            // Freaking Friction
+            {
+                Vec2 T = rev_v.copy().sub(n.copy().mult(rev_v.copy().dot(n.copy())));
+                if (Math.abs(T.x) > 0.00001 || Math.abs(T.y) > 0.00001) {
+                    T = T.normalize();
+                }
+                double raPT = raP.copy().dot(T.copy());
+                double rbPT = rbP.copy().dot(T.copy());
+                double de = (1 / a.mass) + (1 / b.mass) +
+                        (raPT * raPT) * (1 / a.rotationalInertial) +
+                        (rbPT * rbPT) * (1 / b.rotationalInertial);
+                double jt = -rev_v.copy().dot(T.copy());
+                jt /= de;
+                Vec2 friction;
+                if (Math.abs(jt) <= j * 0.6) {
+                    friction = T.copy().mult(jt);
+                } else {
+                    friction = T.copy().mult(j * 0.4 * -1);
+                }
+                a.applyForce(friction.copy());
+                a.applyRotationalForce(ra.copy(), friction);
+                b.applyForce(friction.copy().mult(-1));
+                b.applyRotationalForce(rb.copy().mult(-1), friction);
+            }
             // double e = 0.5;
             // double j = (-1 + e) * rev_v.copy().dot(n);
             // double de = (1 / a.mass) + (1 / b.mass) +
