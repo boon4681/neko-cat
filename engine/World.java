@@ -199,17 +199,10 @@ public class World extends JPanel implements Runnable {
                 double j = -(1 + e) * rev_v.copy().dot(n);
                 j /= de;
                 Vec2 impulse = n.copy().mult(j);
-                Vec2 friction = impulse.copy().sub(n.copy().mult(impulse.copy().dot(n.copy()))).mult(-0.6);
                 a.applyForce(impulse.copy());
-                a.applyForce(friction);
-                // a.vel.add(impulse.copy().mult(1 / a.mass));
                 a.applyRotationalForce(ra.copy(), impulse);
-                // a.rotationalVelocity += ra.copy().cross(impulse) * (1 / a.mass);
                 b.applyForce(impulse.copy().mult(-1));
-                b.applyForce(friction.copy().mult(-1));
                 b.applyRotationalForce(rb.copy().mult(-1), impulse);
-                // b.vel.sub(impulse.copy().mult(1 / b.mass));
-                // b.rotationalVelocity -= rb.copy().cross(impulse) * (1 / b.mass);
             }
             // double e = 0.5;
             // double j = (-1 + e) * rev_v.copy().dot(n);
