@@ -4,16 +4,16 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 
-import javax.imageio.ImageIO;
-
 import engine.World;
 import engine.objects.base.Body;
+import engine.vector.Vec2;
 
 public class Ball6 extends BallBase {
-    private static BufferedImage image = Body.loadImage(new File("assets/c3.png"));
+    private static BufferedImage image = Body.loadImage(new File("assets/cat/c3.png"));
 
-    public Ball6(World world) {
-        super(world, 40, 20);
+    public Ball6(World world, Vec2 pos) {
+        super(world, 50, 25);
+        this.pos = pos;
     }
 
     @Override

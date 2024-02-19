@@ -6,6 +6,7 @@ import java.util.UUID;
 import engine.World;
 
 public interface IObject {
+    public boolean isVisible();
     public UUID getID();
 
     public World getWorld();

@@ -2,11 +2,7 @@ package engine.objects.ball;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.RenderingHints;
-import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
-
-import javax.imageio.ImageIO;
 
 import engine.World;
 import engine.objects.base.Circle;

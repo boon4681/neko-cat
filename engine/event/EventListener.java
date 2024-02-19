@@ -1,11 +1,11 @@
 package engine.event;
 
-public class EventListener<T extends Details> {
+public class EventListener<T> {
     private final String name;
     private final OnEvent<T> listener;
 
     public static interface OnEvent<T> {
-        public void on(T e);
+        public boolean on(T e);
     }
 
     public EventListener(String name, OnEvent<T> event) {
@@ -17,7 +17,7 @@ public class EventListener<T extends Details> {
         return this.name;
     }
 
-    public final void on(T details) {
-        this.listener.on(details);
+    public final boolean on(T details) {
+        return this.listener.on(details);
     }
 }

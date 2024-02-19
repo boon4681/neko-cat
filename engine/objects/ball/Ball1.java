@@ -5,16 +5,16 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.File;
 
-import javax.imageio.ImageIO;
-
 import engine.World;
 import engine.objects.base.Body;
+import engine.vector.Vec2;
 
 public class Ball1 extends BallBase {
-    private static BufferedImage image = Body.loadImage(new File("assets/c1c.png"));
+    private static BufferedImage image = Body.loadImage(new File("assets/cat/c1c.png"));
 
-    public Ball1(World world) {
-        super(world, 16, 5);
+    public Ball1(World world, Vec2 pos) {
+        super(world, 20, 5);
+        this.pos = pos;
     }
 
     @Override

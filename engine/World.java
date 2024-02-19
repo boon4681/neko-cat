@@ -4,62 +4,71 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import javax.swing.JPanel;
 
 import engine.event.EventList;
 import engine.event.EventListener;
-import engine.event.MouseClicked;
-import engine.event.MouseMoveEvent;
-import engine.objects.ball.BallBase;
-import engine.objects.ball.BallType;
+import engine.event.mouse.MouseClicked;
+import engine.event.mouse.MouseMoveEvent;
+import engine.event.mouse.MousePosition;
+import engine.event.mouse.MouseUp;
+import engine.event.world.CircleMerge;
+import engine.event.world.MergeScore;
 import engine.objects.base.Body;
-import engine.objects.base.Circle;
 import engine.objects.base.IObject;
 import engine.objects.base.ShapeType;
+import engine.objects.base.UIComponent;
+import engine.tick.Tickable;
 import engine.vector.Vec2;
+import engine.objects.ball.BallBase;
+import engine.objects.ball.BallType;
 
-public class World extends JPanel implements Runnable {
+public class World extends JPanel implements Tickable {
 
     public static interface Renderer {
-        public void render(Graphics2D g);
+        public Graphics2D render(Graphics2D g);
     }
 
-    private ArrayList<IObject> objects = new ArrayList<>();
-    private ArrayList<Renderer> renderers = new ArrayList<>();
+    protected ArrayList<World> worlds = new ArrayList<>();
+    protected ArrayList<IObject> objects = new ArrayList<>();
+    protected ArrayList<Renderer> before_renderers = new ArrayList<>();
+    protected ArrayList<Renderer> after_renderers = new ArrayList<>();
+    protected EventList events = new EventList();
+    protected boolean running = true;
 
     private final int width;
     private final int height;
 
-    private EventList events = new EventList();
-
-    private Thread worldThread;
-    private boolean loop = false;
     private final String name;
+    private final Window window;
+    public double mx = 0;
+    public double my = 0;
 
-    public World(String name) {
-        this(name, 400, 400);
+    public World(Window window, String name) {
+        this(window, name, 400, 400);
     }
 
-    public void addRenderer(Renderer renderer) {
-        this.renderers.add(renderer);
+    public void addBeforeRenderer(Renderer renderer) {
+        this.before_renderers.add(renderer);
     }
 
-    public World(String name, int width, int height) {
+    public void addAfterRenderer(Renderer renderer) {
+        this.after_renderers.add(renderer);
+    }
+
+    public World(Window window, String name, int width, int height) {
         this.width = width;
         this.height = height;
         setSize(width, height);
         setLocation(0, 0);
         setLayout(null);
-        setBackground(null);
+        // setBackground(null);
         setOpaque(false);
         this.name = name;
-
+        this.window = window;
         this.addMouseListener(new MouseListener() {
 
             @Override
@@ -73,6 +82,7 @@ public class World extends JPanel implements Runnable {
 
             @Override
             public void mouseReleased(MouseEvent e) {
+                events.dispatchEvent(new MouseUp(e.getX(), e.getY()));
             }
 
             @Override
@@ -88,6 +98,7 @@ public class World extends JPanel implements Runnable {
         this.addMouseMotionListener(new MouseMotionListener() {
             @Override
             public void mouseDragged(MouseEvent e) {
+                events.dispatchEvent(new MouseMoveEvent(e.getX(), e.getY()));
             }
 
             @Override
@@ -95,20 +106,26 @@ public class World extends JPanel implements Runnable {
                 events.dispatchEvent(new MouseMoveEvent(e.getX(), e.getY()));
             }
         });
-    }
-
-    public void start() {
-        this.loop = true;
-        this.worldThread = new Thread(this);
-        this.worldThread.start();
+        this.addEventListener(new EventListener<MousePosition>("mousemove", (e) -> {
+            this.mx = e.x;
+            this.my = e.y;
+            return true;
+        }));
+        this.addEventListener(new EventListener<MousePosition>("mouseclick", (e) -> {
+            UIComponent hover = this.getHoverComponent();
+            if (hover != null) {
+                mx = e.x;
+                my = e.y;
+                if (hover.click(e) == false) {
+                    return false;
+                }
+            }
+            return true;
+        }));
     }
 
     public int addEventListener(EventListener<?> e) {
         return this.events.addEventListener(e);
-    }
-
-    public void stop() {
-        this.loop = false;
     }
 
     public UUID add(IObject object) {
@@ -128,10 +145,35 @@ public class World extends JPanel implements Runnable {
         return this.height;
     }
 
+    private UIComponent getHoverComponent() {
+        UIComponent is_hovering = null;
+        for (IObject object : this.objects.toArray(new IObject[0])) {
+            Body body = (Body) object;
+            double x = body.getX();
+            double y = body.getY();
+            double w = body.getWidth();
+            double h = body.getHeight();
+            if (body instanceof UIComponent) {
+                if (this.mx >= x && this.my >= y && this.mx <= x + w && this.my <= y + h) {
+                    is_hovering = (UIComponent) body;
+                } else {
+                    ((UIComponent) body).hover(false);
+                }
+            }
+        }
+        return is_hovering;
+    }
+
     public void update(double dt) {
+        // mouse hover
+        UIComponent hover = this.getHoverComponent();
+        if (hover != null) {
+            hover.hover(true);
+        }
         for (int i = 1; i < 64; i++) {
             for (IObject object : this.objects.toArray(new IObject[0])) {
                 object.update(dt / i);
+                ((Body) object).age += dt / i;
             }
             handleCollisions(dt / i);
         }
@@ -139,7 +181,9 @@ public class World extends JPanel implements Runnable {
 
     public void render(Graphics2D g) {
         for (IObject object : this.objects.toArray(new IObject[0])) {
-            object.render(g);
+            if (object.isVisible()) {
+                object.render(g);
+            }
         }
     }
 
@@ -161,10 +205,11 @@ public class World extends JPanel implements Runnable {
         Vec2 z = a.pos.copy().sub(b.pos);
         double d = z.mag();
         if (d < a.radius + b.radius) {
-            Vec2 n = z.normalize();
+            Vec2 k = z.normalize();
             double delta = (a.radius + b.radius) - d;
-            a.pos.add(n.copy().mult(delta * 0.5));
-            b.pos.add(n.copy().mult(-delta * 0.5));
+            a.pos.add(k.copy().mult(delta * 0.5));
+            b.pos.add(k.copy().mult(-delta * 0.5));
+            Vec2 n = a.pos.copy().sub(b.pos).normalize();
             Vec2 contact = b.pos.copy().sub(a.pos).normalize().mult(a.radius).add(b.pos);
             // Vec2 rev_v = a.vel.copy().sub(b.vel.copy());
             // if (rev_v.copy().dot(n) > 0) {
@@ -174,8 +219,8 @@ public class World extends JPanel implements Runnable {
                 if (ball.isBase(a) && ball.isBase(b)) {
                     this.remove(a);
                     this.remove(b);
-                    BallBase to = ball.createTo(this);
-                    to.pos = a.pos.copy().add(b.pos.copy()).div(2);
+                    ball.createTo(this, a.pos.copy().add(b.pos.copy()).div(2));
+                    this.events.dispatchEvent(new CircleMerge(new MergeScore(ball.getScore())));
                 }
             }
             Vec2 ra = contact.copy().sub(a.pos);
@@ -219,10 +264,10 @@ public class World extends JPanel implements Runnable {
                 double jt = -rev_v.copy().dot(T.copy());
                 jt /= de;
                 Vec2 friction;
-                if (Math.abs(jt) <= j * 0.6) {
+                if (Math.abs(jt) <= j * 0.7) {
                     friction = T.copy().mult(jt);
                 } else {
-                    friction = T.copy().mult(j * 0.4 * -1);
+                    friction = T.copy().mult(j * 0.3 * -1);
                 }
                 a.applyForce(friction.copy());
                 a.applyRotationalForce(ra.copy(), friction);
@@ -245,7 +290,6 @@ public class World extends JPanel implements Runnable {
 
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
@@ -253,10 +297,42 @@ public class World extends JPanel implements Runnable {
         // RenderingHints.KEY_TEXT_ANTIALIASING,
         // RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         // g2d.setRenderingHints(rh);
-        for (Renderer renderer : this.renderers) {
-            renderer.render(g2d);
+        for (Renderer renderer : this.before_renderers) {
+            g = renderer.render(g2d);
         }
         this.render(g2d);
+        for (Renderer renderer : this.after_renderers) {
+            g = renderer.render(g2d);
+        }
+        super.paintComponent(g);
+    }
+
+    public void add(World world) {
+        this.worlds.add(world);
+        super.add(world);
+    }
+
+    public void remove(World world) {
+        this.worlds.remove(world);
+        super.remove(world);
+    }
+
+    public void removeAll() {
+        this.objects.clear();
+    }
+
+    @Override
+    public void tick(double dt) {
+        if (!this.isVisible())
+            return;
+        this.events.flush();
+        if (!this.running)
+            return;
+        update(0.3);
+        for (World world : worlds) {
+            world.tick(dt);
+        }
+        repaint();
     }
 
     // @Override
@@ -277,35 +353,4 @@ public class World extends JPanel implements Runnable {
     // repaint();
     // }
     // }
-    @Override
-    public void run() {
-        int FPS = 60;
-        double nano = TimeUnit.SECONDS.toNanos(1);
-        double revo = nano / FPS;
-        double dt = 0;
-        long lastTime = System.nanoTime();
-        long currentTime = System.nanoTime();
-        try {
-            while (loop) {
-                currentTime = System.nanoTime();
-                dt += ((currentTime - lastTime) / nano) * FPS;
-                if (dt > 1) {
-                    dt--;
-                    this.events.flush();
-                    update(0.3);
-                    repaint();
-                } else {
-                    try {
-                        TimeUnit.NANOSECONDS.sleep((long) (revo - (currentTime - lastTime)));
-                    } catch (Exception e) {
-                        loop = false;
-                    }
-                }
-                lastTime = currentTime;
-            }
-        } catch (Exception e) {
-            System.out.println(this.name);
-            e.printStackTrace();
-        }
-    }
 }

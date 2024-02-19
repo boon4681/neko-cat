@@ -1,19 +1,18 @@
 package engine.objects.ball;
-
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 
-import javax.imageio.ImageIO;
-
 import engine.World;
 import engine.objects.base.Body;
+import engine.vector.Vec2;
 
 public class Ball10 extends BallBase {
-    private static BufferedImage image = Body.loadImage(new File("assets/c10.png"));
+    private static BufferedImage image = Body.loadImage(new File("assets/cat/c10.png"));
 
-    public Ball10(World world) {
-        super(world, 70, 20);
+    public Ball10(World world, Vec2 pos) {
+        super(world, 110, 59);
+        this.pos = pos;
     }
 
     @Override

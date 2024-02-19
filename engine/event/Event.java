@@ -1,6 +1,6 @@
 package engine.event;
 
-public abstract class Event<T extends Details> implements IEvent<T> {
+public abstract class Event<T> implements IEvent<T> {
     protected final T details;
     protected final String name;
 
