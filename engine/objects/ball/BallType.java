@@ -63,10 +63,6 @@ public enum BallType {
         try {
             T ball = createBase(null, null);
             return ball.radius;
-            // Field radius = this.ball.getDeclaredField("radius");
-            // radius.setAccessible(true);
-            // Integer x = (Integer) radius.get(null);
-            // return (int) x;
         } catch (Exception e) {
             e.printStackTrace();
             return 300;
