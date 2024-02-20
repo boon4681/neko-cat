@@ -28,7 +28,7 @@ public class PhysicWorld extends World {
             }
         }
         if (found) {
-            if (countdown > 1800) {
+            if (countdown > 180) {
                 this.running = false;
                 countdown = 0;
                 events.dispatchEvent(new GameOver(true));

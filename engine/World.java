@@ -270,8 +270,10 @@ public class World extends JPanel implements Tickable {
                     friction = T.copy().mult(j * 0.3 * -1);
                 }
                 a.applyForce(friction.copy());
+                // a.applyRotationalForce(ra.copy().normalize().mult(a.radius), friction);
                 a.applyRotationalForce(ra.copy(), friction);
                 b.applyForce(friction.copy().mult(-1));
+                // b.applyRotationalForce(rb.copy().normalize().mult(-1).mult(b.radius), friction);
                 b.applyRotationalForce(rb.copy().mult(-1), friction);
             }
             // double e = 0.5;
@@ -328,7 +330,7 @@ public class World extends JPanel implements Tickable {
         this.events.flush();
         if (!this.running)
             return;
-        update(0.3);
+        update(0.6);
         for (World world : worlds) {
             world.tick(dt);
         }
