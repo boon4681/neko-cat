@@ -9,6 +9,7 @@ import engine.animation.Transition;
 public class Ticker implements Runnable {
     private Window window;
     public ArrayList<Transition> transitions = new ArrayList<>();
+    public ArrayList<Tickable> tickables = new ArrayList<>();
 
     public Ticker(Window window) {
         this.window = window;
@@ -39,6 +40,9 @@ public class Ticker implements Runnable {
                     dt--;
                     for (Transition transition : transitions) {
                         transition.update(dt);
+                    }
+                    for (Tickable tickable : tickables) {
+                        tickable.tick(dt);
                     }
                     window.tick(dt);
                 } else {

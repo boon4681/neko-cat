@@ -24,6 +24,7 @@ import engine.objects.base.StaticImage;
 import engine.scene.Scene;
 import engine.sound.Sound;
 import engine.sound.SoundManager;
+import engine.tick.Tickable;
 import engine.tick.Ticker;
 import engine.vector.Vec2;
 
@@ -34,6 +35,24 @@ public class Game {
     private Number gameOverScore;
     private StaticImage nextImage;
     private ArrayList<BallType> nexts = new ArrayList<>();
+    private boolean canClick = true;
+    private boolean isClicked = false;
+    private Tickable delayer = new Tickable() {
+        public double counter = 0;
+
+        @Override
+        public void tick(double dt) {
+            if (counter > 10) {
+                canClick = true;
+                isClicked = false;
+                counter = 0;
+            }
+            if (isClicked) {
+                counter += dt;
+                canClick = false;
+            }
+        }
+    };
 
     public Game() {
         Window window = new Window("Neko Cat - Game");
@@ -55,10 +74,12 @@ public class Game {
         Scene blackScene = new Scene(window);
         Sound[] popSounds = new Sound[] { Sounds.SFX.pop, Sounds.SFX.pop2, Sounds.SFX.pop3 };
         Sound[] dropSounds = new Sound[] { Sounds.SFX.drop, Sounds.SFX.drop2 };
-        Sounds.MUSIC.bgm.play();
-        Sounds.MUSIC.bgm.setVolume(70);
 
-        SoundManager.setVolume(Sounds.SFX.class, 100);
+        Config.load();
+        Sounds.MUSIC.bgm.play();
+        Sounds.MUSIC.bgm.setVolume(Config.music);
+
+        SoundManager.setVolume(Sounds.SFX.class, Config.sfx);
         reset();
 
         gameover.setup((w) -> {
@@ -156,15 +177,19 @@ public class Game {
             bgmLevel.setValue(Sounds.MUSIC.bgm.getVolume());
             sfxLevel.setValue(100);
 
-            Slider bgmSlider = new Slider(world, new Vec2(100, 145), new Vec2(200, 10), 0, 100, 70);
+            Slider bgmSlider = new Slider(world, new Vec2(100, 145), new Vec2(200, 10), 0, 100, Config.music);
             bgmSlider.onChange(v -> {
                 Sounds.MUSIC.bgm.setVolume(v);
                 bgmLevel.setValue(v);
+                Config.music = v;
+                Config.save();
             });
-            Slider sfxSlider = new Slider(world, new Vec2(100, 225), new Vec2(200, 10), 0, 100, 100);
+            Slider sfxSlider = new Slider(world, new Vec2(100, 225), new Vec2(200, 10), 0, 100, Config.sfx);
             sfxSlider.onChange(v -> {
                 SoundManager.setVolume(Sounds.SFX.class, (int) ((double) v * 1.2d));
                 sfxLevel.setValue(v);
+                Config.sfx = v;
+                Config.save();
             });
             w.add(world);
             w.add(overlay);
@@ -235,7 +260,7 @@ public class Game {
             nextImage.setImage(nexts.get(1).getImage());
             score = new Number(GUI, "assets/number_sprite.png", new Vec2(45, 420), new Vec2(200, 27));
             highscore = new Number(GUI, "assets/number_sprite.png", new Vec2(45, 520), new Vec2(200, 27));
-
+            highscore.setValue(Config.highscore);
             HoverButton menuButton = new HoverButton(ticker, window, GUI, new Vec2(765, 20), new Vec2(50, 50),
                     "assets/menu.png", () -> {
                         menu.setDisplay(true);
@@ -252,7 +277,8 @@ public class Game {
                         setting.setDisplay(true);
                     });
             // for (int i = 0; i < 1000; i++) {
-            //     BallType.BALL1.createBase(game, new Vec2(Math.random() * 100 + 200, Math.random() * 100));
+            // BallType.BALL1.createBase(game, new Vec2(Math.random() * 100 + 200,
+            // Math.random() * 100));
             // }
             GUI.addEventListener(new EventListener<MousePosition>("mousemove", e -> {
                 e.x = Math.max(Math.min(485, e.x - 200), 110);
@@ -260,6 +286,9 @@ public class Game {
                 return true;
             }));
             GUI.addEventListener(new EventListener<MousePosition>("mouseclick", e -> {
+                isClicked = true;
+                if (!canClick)
+                    return true;
                 pipe.pos.x = Math.max(Math.min(485, e.x - 200), 110) - pipe.size.x / 2;
                 e.x = e.x - 110 - 200;
                 Vec2 pos = new Vec2(e.x, 120);
@@ -275,6 +304,8 @@ public class Game {
                 int p = (int) Math.floor(Math.random() * 3);
                 popSounds[p].play();
                 score.setValue(score.getValue() + e.score());
+                Config.highscore = Math.max(highscore.getValue(), score.getValue());
+                Config.save();
                 highscore.setValue(Math.max(highscore.getValue(), score.getValue()));
                 return true;
             }));
@@ -301,7 +332,7 @@ public class Game {
             w.add(blackScreen);
         });
         gameScene.setDisplay(false);
-
+        ticker.tickables.add(delayer);
         ticker.start();
         window.repaint();
     }
